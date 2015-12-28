@@ -35,6 +35,11 @@ _
         xform => {
             schema => 'code*',
             summary => 'Code to return sort keys from data elements',
+            description => <<'_',
+
+This is just like `xform` in `Sort::ByExample`.
+
+_
         },
         array => {
             schema => 'array*',
@@ -73,11 +78,11 @@ _
         },
     ],
 };
-# XXX opt: ci
 sub sort_by_spec {
     my %args = @_;
 
-    my $spec = $args{spec};
+    my $spec  = $args{spec};
+    my $xform = $args{xform};
 
     my $cmp = sub {
         my @vals;
@@ -94,6 +99,7 @@ sub sort_by_spec {
         my @sortsubs;
         for my $i (0..1) {
             my $val = $vals[$i];
+            $val = $xform->($val) if $xform;
           GET_RANK:
             for my $which ('scalar', 'regexp', 'code') {
                 my $j = -1;
@@ -204,7 +210,8 @@ in `Sort::ByExample` where you only provide a single array of example, you can
 specify multiple examples as well as regex or matcher subroutine coupled with
 sort rules. With this, you can more precisely specify how elements of your list
 should be ordered. If your needs are not met by Sort::ByExample, you might want
-to consider this package. The downside is some performance penalty.
+to consider this package. The downside is (currently big) performance penalty,
+especially when your list is large.
 
 To sort using Sort::BySpec, you provide a "spec" which is an array of strings,
 regexes, or coderefs to match against elements of your list to be sorted. In the
@@ -261,3 +268,5 @@ for more complex matching:
 =head1 SEE ALSO
 
 L<Sort::ByExample>
+
+L<Bencher::Scenario::SortBySpec>
