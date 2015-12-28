@@ -40,6 +40,7 @@ _
         spec => {
             schema => 'array*',
             req => 1,
+            pos => 0,
         },
         xform => {
             schema => 'code*',
@@ -60,6 +61,27 @@ and return the sorted list.
 _
     },
     result_naked => 1,
+    examples => [
+        {
+            summary => 'Sort according to a sequence of scalars (like Sort::ByExample)',
+            args => {
+                spec => ['foo', 'bar', 'baz'],
+                array => [1, 2, 3, 'bar', 'a', 'b', 'c', 'baz'],
+            },
+        },
+        {
+            summary => 'Put integers first (in descending order), then '.
+                'a sequence of scalars, then others (in ascending order)',
+            args => {
+                spec => [
+                    qr/\A\d+\z/ => sub { $_[1] <=> $_[0] },
+                    'foo', 'bar', 'baz',
+                    qr// => sub { $_[0] cmp $_[1] },
+                ],
+                array => ["qux", "b", "a", "bar", "foo", 1, 10, 2],
+            },
+        },
+    ],
 };
 # XXX opt: ci
 sub sort_by_spec {
@@ -146,8 +168,31 @@ sub sort_by_spec {
     }
 }
 
+$SPEC{cmp_by_spec} = do {
+    # poor man's "clone"
+    my $meta = { %{ $SPEC{sort_by_spec} } };
+    $meta->{summary} = 'Create a compare subroutine to be used in sort()';
+    $meta->{args} = { %{$meta->{args}} };
+    delete $meta->{args}{array};
+    delete $meta->{result};
+    delete $meta->{examples};
+    $meta;
+};
+sub cmp_by_spec {
+    sort_by_spec(
+        @_,
+        _return_cmp => 1,
+    );
+}
+
 1;
 # ABSTRACT:
+
+=head1 SYNOPSIS
+
+
+=head1 DESCRIPTION
+
 
 =head1 SEE ALSO
 
