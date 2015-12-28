@@ -16,16 +16,6 @@ $SPEC{':package'} = {
     v => 1.1,
     summary => 'Sort array (or create a list sorter) according to '.
         'specification',
-    description => <<'_',
-
-This package provides an advanced form of `Sort::ByExample`. Unlike in
-`Sort::ByExample` where you only provide a single array of example, you can
-specify multiple examples as well as regex or matcher subroutine coupled with
-sort rules.
-
-XXX (about the spec)
-
-_
 };
 
 $SPEC{sort_by_spec} = {
@@ -190,8 +180,82 @@ sub cmp_by_spec {
 
 =head1 SYNOPSIS
 
+ use Sort::BySpec qw(sort_by_spec cmp_by_spec);
+
+ my $sorter = sort_by_spec(spec => [
+     # put odd numbers first, in ascending order
+     qr/[13579]\z/ => sub { $_[0] <=> $_[1] },
+
+     # then put specific numbers here, in this order
+     4, 2, 42,
+
+     # put even numbers last, in descending order
+     sub { $_[0] % 2 == 0 } => sub { $_[1] <=> $_[0] },
+ ]);
+
+ my @res = $sorter->(1..15, 42);
+ # => (1,3,5,7,9,11,13,15,  4,2,42,   14,12,10,8,6)
+
 
 =head1 DESCRIPTION
+
+This package provides a more powerful alternative to L<Sort::ByExample>. Unlike
+in `Sort::ByExample` where you only provide a single array of example, you can
+specify multiple examples as well as regex or matcher subroutine coupled with
+sort rules. With this, you can more precisely specify how elements of your list
+should be ordered. If your needs are not met by Sort::ByExample, you might want
+to consider this package. The downside is some performance penalty.
+
+To sort using Sort::BySpec, you provide a "spec" which is an array of strings,
+regexes, or coderefs to match against elements of your list to be sorted. In the
+simplest form, the spec contains only a list of examples:
+
+ my $sorter = sort_by_spec(spec => ["foo", "bar", "baz"]); # [1]
+
+and this is equivalent to Sort::ByExample:
+
+ my $sorter = sbe(["foo", "bar", "baz"]);
+
+You can also specify regex to match elements. This is evaluated after strings,
+so this work:
+
+ my $sorter = sort_by_spec(spec => [qr/o/, "foo", "bar", "baz", qr/a/]);
+ my @list = ("foo", "food", "bar", "back", "baz", "fool", "boat");
+ my @res = $sorter->(@list);
+ # => ("food","boat","fool",   "foo","bar","baz",   "back")
+
+Right after a regex, you can optionally specify a sort subroutine to tell how to
+sort elements matching that regex, for example:
+
+ my $sorter = sort_by_spec(spec => [
+     qr/o/ => sub { $_[0] cmp $_[1] },
+     "foo", "bar", "baz",
+     qr/a/
+ ]);
+
+ # the same list @list above will now be sorted into:
+ # => ("boat","food","fool",   "foo","bar","baz",   "back")
+
+Note that instead of C<$a> and C<$b>, you should use C<$_[0]> and C<$_[1]>
+respectively. This avoids the package scoping issue of C<$a> and C<$b>, making
+your sorter subroutine works everywhere without any special workaround.
+
+Finally, aside from strings and regexes, you can also specify a coderef matcher
+for more complex matching:
+
+ my $sorter = sort_by_spec(spec => [
+     # put odd numbers first, in ascending order
+     sub { $_[0] % 2 } => sub { $_[0] <=> $_[1] },
+
+     # then put specific numbers here, in this order
+     4, 2, 42,
+
+     # put even numbers last, in descending order
+     sub { $_[0] % 2 == 0 } => sub { $_[1] <=> $_[0] },
+ ]);
+
+ my @res = $sorter->(1..15, 42);
+ # => (1,3,5,7,9,11,13,15,  4,2,42,   14,12,10,8,6)
 
 
 =head1 SEE ALSO
