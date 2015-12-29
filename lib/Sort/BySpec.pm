@@ -84,83 +84,92 @@ sub sort_by_spec {
     my $spec  = $args{spec};
     my $xform = $args{xform};
 
+    my $code_get_rank = sub {
+        my $val = shift;
+
+        my $j;
+        for my $which (0..2) { # 0=scalar, 1=regexp, 2=code
+            $j = -1;
+            while ($j < $#{$spec}) {
+                $j++;
+                my $spec_elem = $spec->[$j];
+                my $ref = ref($spec_elem);
+                if (!$ref) {
+                    if ($which == 0 && $val eq $spec_elem) {
+                        return($j);
+                    }
+                } elsif ($ref eq 'Regexp') {
+                    my $sortsub;
+                    if ($j < $#{$spec} && ref($spec->[$j+1]) eq 'CODE') {
+                        $sortsub = $spec->[$j+1];
+                    }
+                    if ($which == 1 && $val =~ $spec_elem) {
+                        return($j, $sortsub);
+                    }
+                    $j++ if $sortsub;
+                } elsif ($ref eq 'CODE') {
+                    my $sortsub;
+                    if ($j < $#{$spec} && ref($spec->[$j+1]) eq 'CODE') {
+                        $sortsub = $spec->[$j+1];
+                    }
+                    if ($which == 2 && $spec_elem->($val)) {
+                        return($j, $sortsub);
+                    }
+                    $j++ if $sortsub;
+                } else {
+                    die "Invalid spec[$j]: not a scalar/Regexp/code";
+                }
+            } # loop element of spec
+        } # which
+        return($j+1);
+    };
+
     my $cmp = sub {
-        my @vals;
+        my ($a, $b);
+
         if (@_ >= 2) {
-            $vals[0] = $_[0];
-            $vals[1] = $_[1];
+            $a = $_[0];
+            $b = $_[1];
         } else {
             my $caller = caller();
-            $vals[0] = ${"caller\::a"};
-            $vals[1] = ${"caller\::b"};
+            $a = ${"caller\::a"};
+            $b = ${"caller\::b"};
         }
 
-        my @ranks = ();
-        my @sortsubs;
-        for my $i (0..1) {
-            my $val = $vals[$i];
-            $val = $xform->($val) if $xform;
-          GET_RANK:
-            for my $which ('scalar', 'regexp', 'code') {
-                my $j = -1;
-                while ($j < $#{$spec}) {
-                    $j++;
-                    my $spec_elem = $spec->[$j];
-                    my $ref = ref($spec_elem);
-                    if (!$ref) {
-                        if ($which eq 'scalar' && $val eq $spec_elem) {
-                            $ranks[$i] = $j; last GET_RANK;
-                        }
-                    } elsif ($ref eq 'Regexp') {
-                        if ($i == 0 && $j < $#{$spec} &&
-                                ref($spec->[$j+1]) eq 'CODE') {
-                            $sortsubs[$j] = $spec->[$j+1];
-                        }
-                        if ($which eq 'regexp' && $val =~ $spec_elem) {
-                            $ranks[$i] = $j; last GET_RANK;
-                        }
-                        if ($sortsubs[$j]) {
-                            $j++;
-                        }
-                    } elsif ($ref eq 'CODE') {
-                        if ($i == 0 && $j < $#{$spec} &&
-                                ref($spec->[$j+1]) eq 'CODE') {
-                            $sortsubs[$j] = $spec->[$j+1];
-                        }
-                        if ($which eq 'code' && $spec_elem->($val)) {
-                            $ranks[$i] = $j; last GET_RANK;
-                        }
-                        if ($sortsubs[$j]) {
-                            $j++;
-                        }
-                    } else {
-                        die "Invalid spec[$j]: not a scalar/Regexp/code";
-                    }
-                } # loop element of spec
-                $ranks[$i] //= $j+1;
-            } # which
+        if ($xform) {
+            $a = $xform->($a);
+            $b = $xform->($b);
         }
 
-        #use DD; dd {vals=>\@vals, ranks=>\@ranks};
+        my ($rank_a, $sortsub) = $code_get_rank->($a);
+        my ($rank_b          ) = $code_get_rank->($b);
 
-        return $ranks[0] <=> $ranks[1]
-            if $ranks[0] != $ranks[1];
-        my $sortsub = $sortsubs[ $ranks[0] ];
+        if ($rank_a != $rank_b) {
+            return $rank_a <=> $rank_b;
+        }
         return 0 unless $sortsub;
-        return $sortsub->($vals[0], $vals[1]);
+        return $sortsub->($a, $b);
     };
 
     if ($args{_return_cmp}) {
         return $cmp;
-    } elsif ($args{array}) {
-        return [sort {$cmp->($a, $b)} @{ $args{array} }];
     } else {
-        return sub {
-            my $caller = caller();
-            $a = ${"caller\::a"};
-            $b = ${"caller\::b"};
-            sort {$cmp->($a, $b)} @_;
+        # use schwartzian transform to speed sorting longer lists
+        my $sorter = sub {
+            return map { $_->[0] }
+                sort {
+                    $a->[2] <=> $b->[2] ||
+                        ($a->[3] ? $a->[3]($a->[1], $b->[1]) : 0) }
+                    map {
+                        my $x = $xform ? $xform->($_) : $_;
+                        [$_, $x, $code_get_rank->($x)]
+                    } @_;
         };
+
+        if ($args{array}) {
+            return [$sorter->(@{ $args{array} })];
+        }
+        return $sorter;
     }
 }
 
@@ -210,8 +219,8 @@ in `Sort::ByExample` where you only provide a single array of example, you can
 specify multiple examples as well as regex or matcher subroutine coupled with
 sort rules. With this, you can more precisely specify how elements of your list
 should be ordered. If your needs are not met by Sort::ByExample, you might want
-to consider this package. The downside is (currently big) performance penalty,
-especially when your list is large.
+to consider this package. The downside is performance penalty, especially when
+your list is large.
 
 To sort using Sort::BySpec, you provide a "spec" which is an array of strings,
 regexes, or coderefs to match against elements of your list to be sorted. In the
