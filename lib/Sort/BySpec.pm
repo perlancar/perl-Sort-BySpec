@@ -47,6 +47,7 @@ _
     },
     result => {
         summary => 'Sorted array, or sort coderef',
+        schema => ['any*', of=>['array*','code*']],
         description => <<'_',
 
 If array is specified, will returned the sorted array. If array is not specified
@@ -178,7 +179,9 @@ $SPEC{cmp_by_spec} = do {
     $meta->{summary} = 'Create a compare subroutine to be used in sort()';
     $meta->{args} = { %{$meta->{args}} };
     delete $meta->{args}{array};
-    delete $meta->{result};
+    $meta->{result} = {
+        schema => ['code*'],
+    };
     delete $meta->{examples};
     $meta;
 };
