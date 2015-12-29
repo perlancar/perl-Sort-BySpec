@@ -124,34 +124,33 @@ sub sort_by_spec {
         return($j+1);
     };
 
-    my $cmp = sub {
-        my ($a, $b);
-
-        if (@_ >= 2) {
-            $a = $_[0];
-            $b = $_[1];
-        } else {
-            my $caller = caller();
-            $a = ${"caller\::a"};
-            $b = ${"caller\::b"};
-        }
-
-        if ($xform) {
-            $a = $xform->($a);
-            $b = $xform->($b);
-        }
-
-        my ($rank_a, $sortsub) = $code_get_rank->($a);
-        my ($rank_b          ) = $code_get_rank->($b);
-
-        if ($rank_a != $rank_b) {
-            return $rank_a <=> $rank_b;
-        }
-        return 0 unless $sortsub;
-        return $sortsub->($a, $b);
-    };
-
     if ($args{_return_cmp}) {
+        my $cmp = sub {
+            my ($a, $b);
+
+            if (@_ >= 2) {
+                $a = $_[0];
+                $b = $_[1];
+            } else {
+                my $caller = caller();
+                $a = ${"caller\::a"};
+                $b = ${"caller\::b"};
+            }
+
+            if ($xform) {
+                $a = $xform->($a);
+                $b = $xform->($b);
+            }
+
+            my ($rank_a, $sortsub) = $code_get_rank->($a);
+            my ($rank_b          ) = $code_get_rank->($b);
+
+            if ($rank_a != $rank_b) {
+                return $rank_a <=> $rank_b;
+            }
+            return 0 unless $sortsub;
+            return $sortsub->($a, $b);
+        };
         return $cmp;
     } else {
         # use schwartzian transform to speed sorting longer lists
