@@ -41,6 +41,10 @@ This is just like `xform` in `Sort::ByExample`.
 
 _
         },
+        reverse => {
+            summary => 'If set to true, will reverse the sort order',
+            schema => ['bool*', is=>1],
+        },
         array => {
             schema => 'array*',
         },
@@ -63,6 +67,14 @@ _
             args => {
                 spec => ['foo', 'bar', 'baz'],
                 array => [1, 2, 3, 'bar', 'a', 'b', 'c', 'baz'],
+            },
+        },
+        {
+            summary => 'Like previous example, but reversed',
+            args => {
+                spec => ['foo', 'bar', 'baz'],
+                array => [1, 2, 3, 'bar', 'a', 'b', 'c', 'baz'],
+                reverse => 1,
             },
         },
         {
@@ -141,6 +153,10 @@ sub sort_by_spec {
             if ($xform) {
                 $a = $xform->($a);
                 $b = $xform->($b);
+            }
+
+            if ($args{reverse}) {
+                ($a, $b) = ($b, $a);
             }
 
             my ($rank_a, $sortsub) = $code_get_rank->($a);
