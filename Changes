@@ -1,3 +1,11 @@
+0.040   2021-05-01  Released-By: PERLANCAR; Urgency: low
+
+	- No functional changes.
+
+	- [doc] Tweak doc, mention that like in regex, when you use coderef
+	  you can add a comparator function right after it.
+
+
 0.03    2017-02-17  Released-By: PERLANCAR
 
 	- Add option: reverse.
