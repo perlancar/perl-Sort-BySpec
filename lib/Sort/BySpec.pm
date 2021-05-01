@@ -275,7 +275,9 @@ respectively. This avoids the package scoping issue of C<$a> and C<$b>, making
 your sorter subroutine works everywhere without any special workaround.
 
 Finally, aside from strings and regexes, you can also specify a coderef matcher
-for more complex matching:
+for more complex matching. Just like in the case of regex, right after the
+coderef you can optionally specify a sort subroutine (another coderef) to tell
+how to sort matching elements. For example:
 
  my $sorter = sort_by_spec(spec => [
      # put odd numbers first, in ascending order
