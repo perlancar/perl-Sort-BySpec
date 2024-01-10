@@ -1,13 +1,16 @@
 package Sort::BySpec;
 
-# DATE
-# VERSION
-
 use 5.010001;
 use strict 'subs', 'vars';
 use warnings;
 
 use Exporter qw(import);
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our @EXPORT_OK = qw(sort_by_spec cmp_by_spec);
 
 our %SPEC;

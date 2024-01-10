@@ -3,10 +3,10 @@
 use 5.010;
 use strict;
 use warnings;
-
-use Sort::BySpec qw(sort_by_spec cmp_by_spec);
 use Test::Exception;
 use Test::More 0.98;
+
+use Sort::BySpec qw(sort_by_spec cmp_by_spec);
 
 subtest "cmp_by_spec" => sub {
     my $cmp = cmp_by_spec(spec => [4,6,5]);
