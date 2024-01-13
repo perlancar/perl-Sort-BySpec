@@ -51,6 +51,9 @@ _
         array => {
             schema => 'array*',
         },
+        caller_level => {
+            schema => 'uint*',
+        },
     },
     result => {
         summary => 'Sorted array, or sort coderef',
@@ -148,7 +151,7 @@ sub sort_by_spec {
                 $a = $_[0];
                 $b = $_[1];
             } else {
-                my $caller = caller();
+                my $caller = caller($args{caller_level} // 0);
                 $a = ${"caller\::a"};
                 $b = ${"caller\::b"};
             }
